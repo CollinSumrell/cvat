@@ -25,10 +25,9 @@ from pathlib import Path
 
 from attr.converters import to_bool
 from corsheaders.defaults import default_headers
+from cvat import __version__
 from django.core.exceptions import ImproperlyConfigured
 from logstash_async.constants import constants as logstash_async_constants
-
-from cvat import __version__
 
 # Build paths inside the project like this: BASE_DIR / ...
 BASE_DIR = Path(__file__).parents[2]
