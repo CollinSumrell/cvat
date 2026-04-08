@@ -52,3 +52,21 @@ class LambdaFunctionsListTest(APITestCase):
             500,
             f"Server crashed on malformed Nuclio response: {response.content}",
         )
+
+    @mock.patch("cvat.apps.lambda_manager.views.LambdaGateway.list")
+        def test_list_functions_success(self, mock_list):
+            """
+            Verifies that a valid list of functions is returned correctly.
+            """
+            mock_list.return_value = [
+                {
+                    "metadata": {"name": "test-model"},
+                    "spec": {"description": "A successful test model"}
+                }
+            ]
+
+            response = self.client.get("/api/lambda/functions")
+
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(len(response.json()), 1)
+            self.assertEqual(response.json()[0]["metadata"]["name"], "test-model")
