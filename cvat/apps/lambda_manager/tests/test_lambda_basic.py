@@ -1,4 +1,5 @@
 from unittest import mock
+import requests
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
@@ -54,19 +55,27 @@ class LambdaFunctionsListTest(APITestCase):
         )
 
     @mock.patch("cvat.apps.lambda_manager.views.LambdaGateway.list")
-        def test_list_functions_success(self, mock_list):
-            """
-            Verifies that a valid list of functions is returned correctly.
-            """
-            mock_list.return_value = [
-                {
-                    "metadata": {"name": "test-model"},
-                    "spec": {"description": "A successful test model"}
-                }
-            ]
+    def test_list_functions_success(self, mock_list):
+        """
+        Verifies that a valid list of functions is returned correctly.
+        """
+        mock_list.return_value = [
+            {
+                "metadata": {"name": "test-model"},
+                "spec": {"description": "A successful test model"}
+            }
+        ]
 
-            response = self.client.get("/api/lambda/functions")
+        response = self.client.get("/api/lambda/functions")
 
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertEqual(len(response.json()), 1)
-            self.assertEqual(response.json()[0]["metadata"]["name"], "test-model")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]["metadata"]["name"], "test-model")
+
+    @mock.patch("cvat.apps.lambda_manager.views.LambdaGateway.list")
+    def test_list_functions_connection_error_returns_503(self, mock_list):
+        mock_list.side_effect = requests.ConnectionError("Nuclio is unavailable")
+
+        response = self.client.get("/api/lambda/functions")
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
