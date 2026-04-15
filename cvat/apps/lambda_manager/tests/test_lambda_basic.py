@@ -79,3 +79,11 @@ class LambdaFunctionsListTest(APITestCase):
         response = self.client.get("/api/lambda/functions")
 
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    @mock.patch("cvat.apps.lambda_manager.views.LambdaGateway.list")
+    def test_list_functions_timeout_returns_504(self, mock_list):
+        mock_list.side_effect = requests.Timeout("Nuclio timed out")
+
+        response = self.client.get("/api/lambda/functions")
+
+        self.assertEqual(response.status_code, status.HTTP_504_GATEWAY_TIMEOUT)
