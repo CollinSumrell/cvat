@@ -8,6 +8,7 @@
 /* eslint-disable security/detect-non-literal-regexp */
 
 import { decomposeMatrix, convertClasses, toSnakeCase } from './utils';
+import { checkAutoborderPointsCount } from './utils.cy';
 
 require('cypress-file-upload');
 require('../plugins/imageGenerator/imageGeneratorCommand');
@@ -340,24 +341,15 @@ Cypress.Commands.add('headlessRestoreAllFrames', (jobID) => {
 
 Cypress.Commands.add('headlessCreateTask', (taskSpec, dataSpec, extras) => {
     cy.window().its('cvat').should('not.be.undefined').then(async (cvat) => {
-        const task = new cvat.classes.Task({
-            ...taskSpec,
-            ...dataSpec,
-        });
+        const extrasWithData = {
+            ...(extras || {}),
+            clientFiles: dataSpec.client_files || [],
+            serverFiles: dataSpec.server_files || [],
+            remoteFiles: dataSpec.remote_files || [],
+        };
 
-        if (dataSpec.server_files) {
-            task.serverFiles = dataSpec.server_files;
-        }
-
-        if (dataSpec.client_files) {
-            task.clientFiles = dataSpec.client_files;
-        }
-
-        if (dataSpec.remote_files) {
-            task.remoteFiles = dataSpec.remote_files;
-        }
-
-        const result = await task.save(extras || {});
+        const task = new cvat.classes.Task({ ...taskSpec, ...dataSpec });
+        const result = await task.save(extrasWithData);
         return cy.wrap({ taskID: result.id, jobIDs: result.jobs.map((job) => job.id) });
     });
 });
@@ -684,7 +676,7 @@ Cypress.Commands.add('shapeGrouping', (firstX, firstY, lastX, lastY) => {
         .trigger('keyup', { keyCode: keyCodeG, code: 'KeyG' });
 });
 
-Cypress.Commands.add('createPolygon', (createPolygonParams) => {
+Cypress.Commands.add('createPolygon', (createPolygonParams, autoborderParams = null) => {
     if (!createPolygonParams.reDraw) {
         cy.interactControlButton('draw-polygon');
         cy.switchLabel(createPolygonParams.labelName, 'draw-polygon');
@@ -698,6 +690,9 @@ Cypress.Commands.add('createPolygon', (createPolygonParams) => {
             }
             cy.contains('button', createPolygonParams.type).click();
         });
+    }
+    if (autoborderParams && Number.isInteger(autoborderParams.numberOfAutoborderPoints)) {
+        checkAutoborderPointsCount(autoborderParams.numberOfAutoborderPoints);
     }
     createPolygonParams.pointsMap.forEach((element) => {
         cy.get('.cvat-canvas-container').click(element.x, element.y);
@@ -856,7 +851,7 @@ Cypress.Commands.add('updateAttributes', (attributes) => {
     });
 });
 
-Cypress.Commands.add('createPolyline', (createPolylineParams) => {
+Cypress.Commands.add('createPolyline', (createPolylineParams, autoborderParams = null) => {
     cy.interactControlButton('draw-polyline');
     cy.switchLabel(createPolylineParams.labelName, 'draw-polyline');
     cy.get('.cvat-draw-polyline-popover').within(() => {
@@ -869,6 +864,9 @@ Cypress.Commands.add('createPolyline', (createPolylineParams) => {
         }
         cy.contains('button', createPolylineParams.type).click();
     });
+    if (autoborderParams && autoborderParams.numberOfAutoborderPoints) {
+        checkAutoborderPointsCount(autoborderParams.numberOfAutoborderPoints);
+    }
     createPolylineParams.pointsMap.forEach((element) => {
         cy.get('.cvat-canvas-container').click(element.x, element.y);
     });
